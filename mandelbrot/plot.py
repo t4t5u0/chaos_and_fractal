@@ -1,9 +1,18 @@
-import numpy
-from numba import autojit
+from typing import TypedDict
+import numpy as np
+from numba import jit
 import matplotlib.pyplot as plt
 
-@autojit
-def mandelbrot(Re, Im, max_iter):
+
+class Param(TypedDict):
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+@jit
+def mandelbrot(Re: float, Im: float, max_iter: int) -> int:
     c = complex(Re, Im)
     z = 0.0j
 
@@ -13,39 +22,36 @@ def mandelbrot(Re, Im, max_iter):
             return i
     return max_iter
 
-columns = 8000
-rows = 4000
 
-result = numpy.zeros([rows, columns])
-# ここを領域ごとに分割して、あとでくっつける処理を書きたい
-for row_index, Re in enumerate(numpy.linspace(-0.759, -0.757, num=rows)):
-    for column_index, Im in enumerate(numpy.linspace(0.0775, 0.0755, num=columns)):
-        result[row_index, column_index] = mandelbrot(Re, Im , 100)
-
-plt.figure(dpi=500)
-plt.imshow(result.T, cmap='bone', interpolation='bilinear', extent=[-0.759, -0.757, 0.0755, 0.077])
-plt.xticks()
-plt.yticks()
-#plt.tick_params(length=0)
-#plt.show()
-plt.savefig('mandelbrot.png')
+def calc(param: Param) -> tuple[np.ndarray, Param]:
+    columns = 8000
+    rows = 4000
+    result = np.zeros([rows, columns])
+    # ここを領域ごとに分割して、あとでくっつける処理を書きたい
+    for row_index, Re in enumerate(np.linspace(param['x'], param['y'], num=rows)):
+        for column_index, Im in enumerate(np.linspace(param['w'], param['h'], num=columns)):
+            result[row_index, column_index] = mandelbrot(Re, Im, 100)
+    return result, param
 
 
-'''
-columns = 8000
-rows = 4000
+def plot(result: tuple[np.ndarray, Param]):
+    result, param = result
+    plt.figure(dpi=500)
+    plt.imshow(result.T, cmap='bone', interpolation='bilinear',
+               extent=[-0.759, -0.757, 0.0755, 0.077])
+    plt.xticks()
+    plt.yticks()
+    # plt.tick_params(length=0)
+    # plt.show()
+    plt.savefig(f"{param['x']}_{param['y']}_mandelbrot.png")
 
-result = numpy.zeros([rows, columns])
-# ここを領域ごとに分割して、あとでくっつける処理を書きたい
-for row_index, Re in enumerate(numpy.linspace(-2., 1., num=rows)):
-    for column_index, Im in enumerate(numpy.linspace(-1, 1, num=columns)):
-        result[row_index, column_index] = mandelbrot(Re, Im , 100)
 
-plt.figure(dpi=500)
-plt.imshow(result.T, cmap='bone', interpolation='bilinear', extent=[-2, 1, -1, 1])
-plt.xticks(color='None')
-plt.yticks(color='None')
-plt.tick_params(length=0)
-#plt.show()
-plt.savefig('mandelbrot.png')
-'''
+def main():
+    params: list[Param] = [{'x': 1, 'y': 1, 'w': 1, 'h': 1}]
+    for param in params:
+        print(param)
+        plot(calc(param))
+
+
+if __name__ == '__main__':
+    main()
